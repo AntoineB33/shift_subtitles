@@ -1,6 +1,6 @@
-import sys
-from datetime import timedelta, datetime
+import os
 import re
+from datetime import datetime, timedelta
 
 def parse_time(time_str):
     """Convert SRT timestamp to timedelta."""
@@ -31,10 +31,34 @@ def shift_srt(input_file, output_file, offset_seconds):
             else:
                 outfile.write(line)
 
+def main():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    input_dir = os.path.join(base_dir, "input")
+    offset_file = os.path.join(base_dir, "offset.txt")
+    output_file = os.path.join(base_dir, "output.srt")
+
+    # --- Find SRT file in input directory ---
+    srt_files = [f for f in os.listdir(input_dir) if f.lower().endswith(".srt")]
+    if not srt_files:
+        print("No .srt file found in the 'input' folder.")
+        return
+    input_file = os.path.join(input_dir, srt_files[0])
+
+    # --- Read offset value ---
+    if not os.path.exists(offset_file):
+        print("No 'offset.txt' file found next to the script.")
+        return
+    with open(offset_file, "r", encoding="utf-8") as f:
+        try:
+            offset_seconds = float(f.read().strip())
+        except ValueError:
+            print("Invalid offset value in 'offset.txt'. Must be a number (e.g., 2.5 or -1.2).")
+            return
+
+    # --- Shift subtitles ---
+    shift_srt(input_file, output_file, offset_seconds)
+    print(f"Shifted subtitles by {offset_seconds} seconds.")
+    print(f"Created: {output_file}")
+
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("Usage: python shift_subtitles.py input.srt output.srt offset_seconds")
-    else:
-        input_path, output_path, offset = sys.argv[1], sys.argv[2], float(sys.argv[3])
-        shift_srt(input_path, output_path, offset)
-        print(f"Subtitles shifted by {offset} seconds and saved to '{output_path}'.")
+    main()
